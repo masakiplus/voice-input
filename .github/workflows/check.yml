@@ -1,0 +1,28 @@
+name: check
+on: [push, pull_request]
+# gitleaks-action は PR のとき PR のコミット一覧を API で読むので pull-requests: read が要る
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install numpy
+      - run: python -m py_compile voice_input.py
+      - run: python tests/test_voice_input.py
+      - run: bash -n run.sh && bash -n build_app.sh && bash -n install.sh
+      - run: cc -fsyntax-only -DRUN_SH='"/tmp/run.sh"' app/launcher.c
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
